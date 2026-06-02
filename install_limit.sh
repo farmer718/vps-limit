@@ -121,18 +121,6 @@ chmod +x $WORKER_SCRIPT
 # 创建日志文件
 touch $LOG_FILE
 
-# 配置日志轮转（保留最近 1000 行）
-cat << 'EOF' > /etc/logrotate.d/net_limit_agent
-/var/log/net_limit_agent.log {
-    weekly
-    rotate 4
-    compress
-    missingok
-    notifempty
-    size 1M
-}
-EOF
-
 # 5. 配置并持久化 Cron 定时任务
 echo "*/2 * * * * root $WORKER_SCRIPT >> /dev/null 2>&1" > $CRON_FILE
 chmod 644 $CRON_FILE
