@@ -7,13 +7,13 @@
 ### 一键安装
 
 ```bash
-sudo bash <(curl -Ls https://raw.githubusercontent.com/farmer718/vps-limit/main/install_limit.sh)
+curl -Ls https://raw.githubusercontent.com/farmer718/vps-limit/main/install_limit.sh | sudo bash
 ```
 
 或者
 
 ```bash
-curl -Ls https://raw.githubusercontent.com/farmer718/vps-limit/main/install_limit.sh | sudo bash
+wget -qO- https://raw.githubusercontent.com/farmer718/vps-limit/main/install_limit.sh | sudo bash
 ```
 
 ### 支持的系统
@@ -128,7 +128,7 @@ sudo tc qdisc del dev $IFACE root 2>/dev/null
 
 ```bash
 # 确保使用 sudo 执行
-sudo bash <(curl -Ls https://raw.githubusercontent.com/farmer718/vps-limit/main/install_limit.sh)
+curl -Ls https://raw.githubusercontent.com/farmer718/vps-limit/main/install_limit.sh | sudo bash
 ```
 
 ### 2. 无法获取公网 IP
