@@ -118,6 +118,9 @@ EOF
 # 赋予执行权限
 chmod +x $WORKER_SCRIPT
 
+# 创建日志文件
+touch $LOG_FILE
+
 # 5. 配置并持久化 Cron 定时任务
 echo "*/2 * * * * root $WORKER_SCRIPT >> /dev/null 2>&1" > $CRON_FILE
 chmod 644 $CRON_FILE
@@ -136,7 +139,7 @@ echo "📝 日志文件路径: $LOG_FILE"
 echo "⏱️ 执行频率: 每 2 分钟一次 (带有 MD5 防震荡检测)"
 echo "===================================================="
 echo "🚀 正在进行首次手动触发测试..."
-bash $WORKER_SCRIPT
+bash $WORKER_SCRIPT 2>&1
 tail -n 2 $LOG_FILE
 
 # ================= 新增：自毁逻辑 =================
