@@ -37,6 +37,7 @@ cat << 'EOF' > $WORKER_SCRIPT
 #!/bin/bash
 
 API_URL="http://zora.dianpingping.top:1024/api/computer/limit"
+LOG_FILE="/var/log/net_limit_agent.log"
 LOG_PREFIX="$(date '+%Y-%m-%d %H:%M:%S') -"
 CACHE_FILE="/tmp/net_limit_last_response.md5"
 
