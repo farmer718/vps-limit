@@ -15,14 +15,14 @@ echo "⏳ 开始环境初始化..."
 if [ -x "$(command -v apt-get)" ]; then
     echo "📦 检测到 Debian/Ubuntu 架构，正在检查依赖..."
     apt-get update -y > /dev/null 2>&1
-    apt-get install -y curl jq iproute2 cron awk coreutils > /dev/null 2>&1 
+    apt-get install -y curl iproute2 cron awk coreutils > /dev/null 2>&1
 elif [ -x "$(command -v yum)" ]; then
     echo "📦 检测到 CentOS/RHEL 架构，正在检查依赖..."
-    yum install -y curl jq iproute cronie awk coreutils > /dev/null 2>&1
+    yum install -y curl iproute cronie awk coreutils > /dev/null 2>&1
     systemctl enable crond > /dev/null 2>&1
     systemctl start crond > /dev/null 2>&1
 else
-    echo "❌ 错误: 不支持的包管理器。请手动安装 curl, jq, iproute2, awk"
+    echo "❌ 错误: 不支持的包管理器。请手动安装 curl, iproute2, awk"
     exit 1
 fi
 echo "✅ 依赖检查通过。"
@@ -75,12 +75,18 @@ fi
 echo "$CURRENT_MD5" > "$CACHE_FILE"
 echo "$LOG_PREFIX 🔄 策略状态更新，准备重构网卡规则..."
 
-# 5. JSON 解析与容错处理
-ENABLED=$(echo "$RESPONSE" | jq -r '.enabled // empty')
-LIMIT_MBPS=$(echo "$RESPONSE" | jq -r '.limitMbps // 0')
-LOSS=$(echo "$RESPONSE" | jq -r '.loss // 0')
-DELAY_MS=$(echo "$RESPONSE" | jq -r '.delayMs // 0')
-JITTER_MS=$(echo "$RESPONSE" | jq -r '.jitterMs // 0')
+# 5. JSON 解析（纯 shell，无需 jq）
+parse_json() {
+    local json="$1"
+    local key="$2"
+    echo "$json" | grep -o "\"$key\"[[:space:]]*:[[:space:]]*[^,}]*" | sed 's/.*:[[:space:]]*//' | tr -d '"' | tr -d ' '
+}
+
+ENABLED=$(parse_json "$RESPONSE" "enabled")
+LIMIT_MBPS=$(parse_json "$RESPONSE" "limitMbps")
+LOSS=$(parse_json "$RESPONSE" "loss")
+DELAY_MS=$(parse_json "$RESPONSE" "delayMs")
+JITTER_MS=$(parse_json "$RESPONSE" "jitterMs")
 
 # 6. 策略执行逻辑
 tc qdisc del dev $IFACE root 2>/dev/null
