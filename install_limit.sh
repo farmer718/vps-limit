@@ -48,8 +48,15 @@ if [ -z "$PUBLIC_IP" ]; then
     exit 1
 fi
 
-# 2. 高效获取默认出网网卡
-IFACE=$(ip route | awk '/default/ {print $5; exit}')
+# 2. 更加鲁棒的默认出网网卡获取机制
+# 方法 A：直接问内核“去外网 IP 该走哪条路”，精准锁定当前活跃的真实出网网卡（无视格式位移）
+IFACE=$(ip route get 1.1.1.1 2>/dev/null | grep -oP 'dev \K\S+')
+
+# 方法 B 后备弹窗：如果内核查询失败，采用更聪明的 awk 正则匹配 'dev' 后面的字符串
+if [ -z "$IFACE" ]; then
+    IFACE=$(ip route | awk '/default/ {for(i=1;i<=NF;i++) if($i=="dev") print $(i+1); exit}')
+fi
+
 if [ -z "$IFACE" ]; then
     echo "$LOG_PREFIX ❌ 错误: 无法检测到默认出网网卡，中断本次执行。" >> $LOG_FILE
     exit 1
