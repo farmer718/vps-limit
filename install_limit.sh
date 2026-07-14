@@ -15,7 +15,7 @@ echo "⏳ 开始环境初始化..."
 if [ -x "$(command -v apt-get)" ]; then
     echo "📦 检测到 Debian/Ubuntu 架构，正在检查依赖..."
     apt-get update -y > /dev/null 2>&1
-    apt-get install -y curl iproute2 cron awk coreutils > /dev/null 2>&1
+    apt-get install -y curl iproute2 cron gawk coreutils > /dev/null 2>&1
 elif [ -x "$(command -v yum)" ]; then
     echo "📦 检测到 CentOS/RHEL 架构，正在检查依赖..."
     yum install -y curl iproute cronie awk coreutils > /dev/null 2>&1
@@ -48,13 +48,13 @@ if [ -z "$PUBLIC_IP" ]; then
     exit 1
 fi
 
-# 2. 更加鲁棒的默认出网网卡获取机制
-# 方法 A：直接问内核“去外网 IP 该走哪条路”，精准锁定当前活跃的真实出网网卡（无视格式位移）
-IFACE=$(ip route get 1.1.1.1 2>/dev/null | grep -oP 'dev \K\S+')
+# 2. 更加鲁棒的默认出网网卡获取机制 (移除 grep -P 依赖，完美兼容 busybox/精简版系统)
+# 方法 A：向内核打听去公网的路，并用全兼容的 awk 抓取 'dev' 后面的网卡名
+IFACE=$(ip route get 1.1.1.1 2>/dev/null | awk '{for(i=1;i<=NF;i++) if($i=="dev") {print $(i+1); exit}}')
 
-# 方法 B 后备弹窗：如果内核查询失败，采用更聪明的 awk 正则匹配 'dev' 后面的字符串
+# 方法 B 后备弹窗：如果内核查询失败（如容器环境限制），则扫描默认路由表
 if [ -z "$IFACE" ]; then
-    IFACE=$(ip route | awk '/default/ {for(i=1;i<=NF;i++) if($i=="dev") print $(i+1); exit}')
+    IFACE=$(ip route | awk '/default/ {for(i=1;i<=NF;i++) if($i=="dev") {print $(i+1); exit}}')
 fi
 
 if [ -z "$IFACE" ]; then
