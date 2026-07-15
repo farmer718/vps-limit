@@ -3,6 +3,14 @@
 # 网络限速策略自动同步与执行脚本 (一键部署版 - 阅后即焚版)
 # ====================================================
 
+# 0. 自身换行符净化：若本脚本被 CRLF 污染（常见于从 Windows 传输或某些 HTTP 代理），
+#    自动转换为 LF 后重新执行干净版本，防止 heredoc 把 \r 传染给 worker 脚本。
+if grep -q $'\r' "$0" 2>/dev/null; then
+    echo "🧹 检测到本脚本含有 CRLF 换行符，正在自动净化为 LF 后重跑..."
+    sed -i 's/\r$//' "$0"
+    exec bash "$0" "$@"
+fi
+
 # 1. 权限检查
 if [ "$EUID" -ne 0 ]; then
   echo "❌ 错误: 请使用 root 权限执行此脚本 (例如: sudo bash $0)"
@@ -127,6 +135,9 @@ fi
 
 echo "$LOG_PREFIX ✅ 策略应用成功。" >> $LOG_FILE
 EOF
+
+# 净化换行符：无论本安装脚本在上游被何种方式污染成 CRLF，此处强制 worker 脚本为 LF
+sed -i 's/\r$//' "$WORKER_SCRIPT"
 
 # 赋予执行权限
 chmod +x $WORKER_SCRIPT
