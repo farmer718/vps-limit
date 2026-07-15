@@ -44,6 +44,11 @@ CRON_FILE="/etc/cron.d/net_limit_agent"
 cat << 'EOF' > $WORKER_SCRIPT
 #!/bin/bash
 
+# 兼容 cron 极简环境：cron 默认 PATH 只有 /usr/bin:/bin，
+# 而 ip 命令在 /usr/sbin/ip、tc 命令在 /usr/sbin/tc 都不在默认 PATH 里，
+# 不显式补全会导致 cron 调用时 "ip route" / "tc qdisc" 命令找不到，网卡抓取和限速全失败。
+export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+
 API_URL="http://zora.dianpingping.top:1024/api/computer/limit"
 LOG_FILE="/var/log/net_limit_agent.log"
 LOG_PREFIX="$(date '+%Y-%m-%d %H:%M:%S') -"
@@ -70,10 +75,15 @@ if [ -z "$IFACE" ]; then
     exit 1
 fi
 
-# 3. 请求外部策略接口
-RESPONSE=$(curl -s --connect-timeout 10 "$API_URL?client_ip=$PUBLIC_IP")
+# 3. 请求外部策略接口（带 3 次重试，防止单次网络抖动判定为"接口无响应"）
+RESPONSE=""
+for attempt in 1 2 3; do
+    RESPONSE=$(curl -s --connect-timeout 10 --max-time 20 "$API_URL?client_ip=$PUBLIC_IP")
+    [ -n "$RESPONSE" ] && break
+    sleep 2
+done
 if [ -z "$RESPONSE" ]; then
-    echo "$LOG_PREFIX ❌ 错误: 接口无响应，中断本次执行。" >> $LOG_FILE
+    echo "$LOG_PREFIX ❌ 错误: 接口无响应（已重试 3 次），中断本次执行。" >> $LOG_FILE
     exit 1
 fi
 
